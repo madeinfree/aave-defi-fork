@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity 0.8.16;
 
 import "forge-std/Test.sol";
 import {Setup} from "src/Setup.sol";
@@ -24,9 +24,9 @@ contract LendingPoolTest is Test {
             address(setup.defaultReserveInterestRateStrategy())
         );
 
-        setup.lendingPool().deposit{value: 1 ether}(
+        setup.lendingPool().deposit{value: 10 ether}(
             ETH,
-            1 ether
+            10 ether
         );
 
         AToken aETH = AToken(setup.lendingPoolCore().getReserveATokenAddress(ETH));
@@ -34,6 +34,8 @@ contract LendingPoolTest is Test {
         assertEq(setup.lendingPoolCore().getReserveAvailableLiquidity(ETH), aETH.balanceOf(address(this)));
 
         (uint256 totalLiquidityETH, uint256 totalCollateralETH) = setup.lendingPoolDataProvider().getUserAccountData(address(this));
-        console.log(totalLiquidityETH, totalCollateralETH);
+
+        assertEq(totalLiquidityETH, 10 ether);
+        assertEq(totalCollateralETH, 0);
     }
 }
