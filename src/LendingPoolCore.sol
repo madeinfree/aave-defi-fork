@@ -2,15 +2,14 @@
 pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {CoreLibrary} from "./libraries/CoreLibrary.sol";
+import {AToken} from "src/tokenization/AToken.sol";
+import {CoreLibrary} from "src/libraries/CoreLibrary.sol";
 import {IReserveInterestRateStrategy} from "./interfaces/IReserveInterestRateStrategy.sol";
 
 contract LendingPoolCore {
 
-  using SafeERC20 for ERC20;
+  using SafeERC20 for AToken;
   using CoreLibrary for CoreLibrary.ReserveData;
   using CoreLibrary for CoreLibrary.UserReserveData;
 
@@ -92,7 +91,7 @@ contract LendingPoolCore {
     if (_reserve == address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
       balance = address(this).balance;
     } else {
-      balance = IERC20(_reserve).balanceOf(address(this));
+      balance = AToken(_reserve).balanceOf(address(this));
     }
 
     return balance;
@@ -112,12 +111,51 @@ contract LendingPoolCore {
   }
 
   /**
+    @dev 計算用戶基本儲備資訊
+   */
+  function getUserBasicReserveData(address _reserve, address _user)
+    external
+    view
+    returns (uint256, uint256, uint256, bool) {
+      CoreLibrary.ReserveData storage reserve = reserves[_reserve];
+      CoreLibrary.UserReserveData storage user = usersReserveData[_user][_reserve];
+
+      uint256 underlyingBalance = getUserUnderlyingAssetBalance(_reserve, _user);
+
+      if (user.principalBorrowBalance == 0) {
+        return (underlyingBalance, 0, 0, user.useAsCollateral);
+      }
+
+      return (
+        underlyingBalance,
+        user.getCompoundedBorrowBalance(reserve),
+        user.originationFee,
+        user.useAsCollateral
+      );
+  }
+
+  /**
+    @dev 取得用戶指定儲備
+   */
+  function getUserUnderlyingAssetBalance(address _reserve, address _user) public view returns (uint256) {
+    AToken aToken = AToken(reserves[_reserve].aTokenAddress);
+    return aToken.balanceOf(_user);
+  }
+
+  /**
+    @dev 取得所有儲備
+   */
+  function getReserves() external view returns (address[] memory) {
+    return reservesList;
+  }
+
+  /**
     @dev 將金額從用戶轉移到目的地儲備
    */
   function transferToReserve(address _reserve, address payable _user, uint256 _amount) external payable {
       if (_reserve != address(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE)) {
           require(msg.value == 0, "User is sending ETH along with the ERC20 transfer.");
-          ERC20(_reserve).safeTransferFrom(_user, address(this), _amount);
+          AToken(_reserve).safeTransferFrom(_user, address(this), _amount);
       } else {
           require(msg.value >= _amount, "The amount and the value sent to deposit do not match");
           if (msg.value > _amount) {

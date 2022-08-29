@@ -24,13 +24,16 @@ contract LendingPoolTest is Test {
             address(setup.defaultReserveInterestRateStrategy())
         );
 
-        setup.lendingPool().deposit{value: 10 ether}(
+        setup.lendingPool().deposit{value: 1 ether}(
             ETH,
-            10 ether
+            1 ether
         );
 
         AToken aETH = AToken(setup.lendingPoolCore().getReserveATokenAddress(ETH));
 
         assertEq(setup.lendingPoolCore().getReserveAvailableLiquidity(ETH), aETH.balanceOf(address(this)));
+
+        (uint256 totalLiquidityETH, uint256 totalCollateralETH) = setup.lendingPoolDataProvider().getUserAccountData(address(this));
+        console.log(totalLiquidityETH, totalCollateralETH);
     }
 }

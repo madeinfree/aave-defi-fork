@@ -185,4 +185,14 @@ library CoreLibrary {
 
     return cumulated;
   }
+
+  /**
+    @dev 計算借款複利利息
+   */
+  function getCompoundedBorrowBalance(
+    CoreLibrary.UserReserveData storage _self,
+    CoreLibrary.ReserveData storage _reserve
+  ) internal view returns (uint256) {
+    if (_self.principalBorrowBalance == 0) return 0;
+  }
 }
